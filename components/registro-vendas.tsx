@@ -45,6 +45,11 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
     canal: "" as "mercado-livre" | "balcao" | "",
   })
 
+  console.log(
+    "Sucatas recebidas:",
+    sucatas.map((s) => ({ id: s.id, tipo: typeof s.id })),
+  )
+
   const vendasComSucata = vendas
     .map((venda) => ({
       ...venda,
@@ -62,16 +67,36 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    console.log("FormData completo:", formData)
+    console.log("sucataId capturado:", formData.sucataId, "tipo:", typeof formData.sucataId)
+
     if (!formData.sucataId || formData.sucataId === "") {
       alert("Por favor, selecione uma sucata antes de registrar a venda.")
       return
     }
 
     try {
-      const sucataId = Number.parseInt(formData.sucataId)
+      let sucataId: number
 
-      if (isNaN(sucataId)) {
+      if (typeof formData.sucataId === "string") {
+        sucataId = Number.parseInt(formData.sucataId)
+      } else {
+        sucataId = Number(formData.sucataId)
+      }
+
+      console.log("sucataId convertido:", sucataId, "isNaN:", isNaN(sucataId))
+
+      if (isNaN(sucataId) || sucataId <= 0) {
+        console.error("ID inválido - formData.sucataId:", formData.sucataId, "convertido:", sucataId)
         alert("Erro: ID da sucata inválido. Tente selecionar a sucata novamente.")
+        return
+      }
+
+      const sucataExiste = sucatas.find((s) => Number(s.id) === sucataId)
+      console.log("Sucata encontrada:", sucataExiste)
+
+      if (!sucataExiste) {
+        alert("Erro: Sucata selecionada não encontrada. Tente novamente.")
         return
       }
 
@@ -193,7 +218,9 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
                 <Select
                   value={formData.sucataId}
                   onValueChange={(value) => {
-                    console.log("Sucata selecionada:", value) // Log para debug
+                    console.log("Sucata selecionada - value:", value, "tipo:", typeof value)
+                    const sucataEncontrada = sucatas.find((s) => s.id.toString() === value)
+                    console.log("Sucata encontrada no onChange:", sucataEncontrada)
                     setFormData({ ...formData, sucataId: value })
                   }}
                   required
@@ -204,11 +231,14 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
                   <SelectContent>
                     {sucatas
                       .filter((s) => s.status === "ativa")
-                      .map((sucata) => (
-                        <SelectItem key={sucata.id} value={sucata.id.toString()}>
-                          Lote {sucata.lote} - {sucata.marca} {sucata.modelo} ({sucata.ano})
-                        </SelectItem>
-                      ))}
+                      .map((sucata) => {
+                        console.log("Renderizando sucata no Select:", { id: sucata.id, tipo: typeof sucata.id })
+                        return (
+                          <SelectItem key={sucata.id} value={sucata.id.toString()}>
+                            Lote {sucata.lote} - {sucata.marca} {sucata.modelo} ({sucata.ano})
+                          </SelectItem>
+                        )
+                      })}
                   </SelectContent>
                 </Select>
               </div>
