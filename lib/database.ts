@@ -172,7 +172,7 @@ export async function createVenda(vendaData: {
       .from("vendas")
       .insert({
         sucata_id: vendaData.sucata_id,
-        peca: vendaData.peca,
+        nome_peca: vendaData.peca, // usando nome_peca ao invés de peca
         valor: vendaData.valor,
         data_venda: vendaData.data_venda,
         canal: vendaData.canal,
@@ -217,7 +217,7 @@ export async function updateVenda(
       .from("vendas")
       .update({
         sucata_id: vendaData.sucata_id,
-        peca: vendaData.peca,
+        nome_peca: vendaData.peca, // usando nome_peca ao invés de peca
         valor: vendaData.valor,
         data_venda: vendaData.data_venda,
         canal: vendaData.canal,
@@ -283,7 +283,7 @@ function transformDatabaseVenda(dbVenda: DatabaseVenda): Venda {
   return {
     id: dbVenda.id.toString(),
     sucataId: dbVenda.sucata_id.toString(),
-    nomePeca: dbVenda.peca,
+    nomePeca: dbVenda.nome_peca, // usando nome_peca ao invés de peca
     valor: dbVenda.valor,
     dataVenda: dbVenda.data_venda,
     canal: dbVenda.canal,
