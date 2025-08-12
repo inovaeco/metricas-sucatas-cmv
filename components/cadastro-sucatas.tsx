@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,6 +18,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Edit, Trash2, Search } from "lucide-react"
 import type { Sucata } from "@/app/page"
+import { createSucata, updateSucata, deleteSucata } from "@/lib/database"
 
 interface CadastroSucatasProps {
   sucatas: Sucata[]
@@ -34,6 +34,7 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingSucata, setEditingSucata] = useState<Sucata | null>(null)
   const [filtro, setFiltro] = useState("")
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     marca: "",
     modelo: "",
@@ -49,27 +50,40 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
       sucata.modelo.toLowerCase().includes(filtro.toLowerCase()),
   )
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
 
-    const novaSucata: Sucata = {
-      id: editingSucata?.id || Date.now().toString(),
-      marca: formData.marca,
-      modelo: formData.modelo,
-      ano: Number.parseInt(formData.ano),
-      custo: Number.parseFloat(formData.custo),
-      dataEntrada: formData.dataEntrada,
-      lote: formData.lote,
-      status: "ativa",
+    try {
+      const sucataData = {
+        marca: formData.marca,
+        modelo: formData.modelo,
+        ano: Number.parseInt(formData.ano),
+        custo: Number.parseFloat(formData.custo),
+        dataEntrada: formData.dataEntrada,
+        lote: formData.lote,
+        status: "ativa" as const,
+      }
+
+      if (editingSucata) {
+        const sucataAtualizada = await updateSucata(editingSucata.id, sucataData)
+        if (sucataAtualizada) {
+          setSucatas(sucatas.map((s) => (s.id === editingSucata.id ? sucataAtualizada : s)))
+        }
+      } else {
+        const novaSucata = await createSucata(sucataData)
+        if (novaSucata) {
+          setSucatas([...sucatas, novaSucata])
+        }
+      }
+
+      resetForm()
+    } catch (error) {
+      console.error("Erro ao salvar sucata:", error)
+      alert("Erro ao salvar sucata. Tente novamente.")
+    } finally {
+      setLoading(false)
     }
-
-    if (editingSucata) {
-      setSucatas(sucatas.map((s) => (s.id === editingSucata.id ? novaSucata : s)))
-    } else {
-      setSucatas([...sucatas, novaSucata])
-    }
-
-    resetForm()
   }
 
   const resetForm = () => {
@@ -98,13 +112,25 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
     setIsDialogOpen(true)
   }
 
-  const handleDelete = (id: string) => {
-    setSucatas(sucatas.filter((s) => s.id !== id))
+  const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta sucata?")) return
+
+    setLoading(true)
+    try {
+      const success = await deleteSucata(id)
+      if (success) {
+        setSucatas(sucatas.filter((s) => s.id !== id))
+      }
+    } catch (error) {
+      console.error("Erro ao excluir sucata:", error)
+      alert("Erro ao excluir sucata. Tente novamente.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="space-y-6">
-      {/* Header com filtros e botão de adicionar */}
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
           <div className="relative">
@@ -120,7 +146,7 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => setEditingSucata(null)}>
+            <Button onClick={() => setEditingSucata(null)} disabled={loading}>
               <Plus className="h-4 w-4 mr-2" />
               Nova Sucata
             </Button>
@@ -140,6 +166,7 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
                     value={formData.marca}
                     onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
                     required
+                    disabled={loading}
                   />
                 </div>
                 <div>
@@ -149,6 +176,7 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
                     value={formData.modelo}
                     onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -162,6 +190,7 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
                     value={formData.ano}
                     onChange={(e) => setFormData({ ...formData, ano: e.target.value })}
                     required
+                    disabled={loading}
                   />
                 </div>
                 <div>
@@ -173,6 +202,7 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
                     value={formData.custo}
                     onChange={(e) => setFormData({ ...formData, custo: e.target.value })}
                     required
+                    disabled={loading}
                   />
                 </div>
                 <div>
@@ -183,6 +213,7 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
                     onChange={(e) => setFormData({ ...formData, lote: e.target.value })}
                     placeholder="Ex: LOTE-001"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -195,21 +226,23 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
                   value={formData.dataEntrada}
                   onChange={(e) => setFormData({ ...formData, dataEntrada: e.target.value })}
                   required
+                  disabled={loading}
                 />
               </div>
 
               <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button type="button" variant="outline" onClick={resetForm} disabled={loading}>
                   Cancelar
                 </Button>
-                <Button type="submit">{editingSucata ? "Atualizar" : "Cadastrar"}</Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Salvando..." : editingSucata ? "Atualizar" : "Cadastrar"}
+                </Button>
               </div>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Tabela de sucatas */}
       <Card>
         <CardHeader>
           <CardTitle>Sucatas Cadastradas</CardTitle>
@@ -247,10 +280,10 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(sucata)}>
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(sucata)} disabled={loading}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleDelete(sucata.id)}>
+                      <Button size="sm" variant="outline" onClick={() => handleDelete(sucata.id)} disabled={loading}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
