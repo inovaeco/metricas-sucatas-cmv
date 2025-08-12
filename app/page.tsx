@@ -11,7 +11,7 @@ import { getSucatas, getVendas } from "@/lib/database"
 
 // Tipos de dados
 export interface Sucata {
-  id: string
+  id: number
   marca: string
   modelo: string
   ano: number
@@ -22,8 +22,8 @@ export interface Sucata {
 }
 
 export interface Venda {
-  id: string
-  sucataId: string
+  id: number
+  sucataId: number
   nomePeca: string
   valor: number
   dataVenda: string

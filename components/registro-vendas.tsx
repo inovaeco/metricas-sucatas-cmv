@@ -68,20 +68,22 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
     }
 
     try {
+      const sucataId = Number.parseInt(formData.sucataId)
+
+      if (isNaN(sucataId)) {
+        alert("Erro: ID da sucata inválido. Tente selecionar a sucata novamente.")
+        return
+      }
+
       const vendaData = {
-        sucata_id: Number.parseInt(formData.sucataId),
+        sucata_id: sucataId,
         peca: formData.nomePeca,
         valor: Number.parseFloat(formData.valor),
         canal: formData.canal as "mercado-livre" | "balcao",
         data_venda: formData.dataVenda,
       }
 
-      if (isNaN(vendaData.sucata_id)) {
-        alert("Erro: ID da sucata inválido. Tente selecionar a sucata novamente.")
-        return
-      }
-
-      console.log("Dados da venda a serem enviados:", vendaData) // Log para debug
+      console.log("Dados da venda a serem enviados:", vendaData)
 
       if (editingVenda) {
         await updateVenda(editingVenda.id, vendaData)
@@ -90,7 +92,7 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
             v.id === editingVenda.id
               ? {
                   ...editingVenda,
-                  sucataId: formData.sucataId,
+                  sucataId: sucataId,
                   nomePeca: formData.nomePeca,
                   valor: Number.parseFloat(formData.valor),
                   dataVenda: formData.dataVenda,
@@ -106,7 +108,7 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
             ...vendas,
             {
               id: novaVenda.id.toString(),
-              sucataId: formData.sucataId,
+              sucataId: sucataId,
               nomePeca: formData.nomePeca,
               valor: Number.parseFloat(formData.valor),
               dataVenda: formData.dataVenda,
@@ -118,7 +120,7 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
 
       resetForm()
     } catch (error) {
-      console.error("Erro detalhado ao criar venda:", error) // Log mais detalhado
+      console.error("Erro detalhado ao criar venda:", error)
       alert("Erro ao salvar venda. Verifique se todos os campos estão preenchidos corretamente.")
     }
   }
@@ -138,7 +140,7 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
   const handleEdit = (venda: Venda) => {
     setEditingVenda(venda)
     setFormData({
-      sucataId: venda.sucataId,
+      sucataId: venda.sucataId.toString(),
       nomePeca: venda.nomePeca,
       valor: venda.valor.toString(),
       dataVenda: venda.dataVenda,
@@ -147,9 +149,9 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
     setIsDialogOpen(true)
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     try {
-      await deleteVenda(id)
+      await deleteVenda(id.toString())
       setVendas(vendas.filter((v) => v.id !== id))
     } catch (error) {
       console.error("Erro ao deletar venda:", error)
@@ -203,7 +205,7 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
                     {sucatas
                       .filter((s) => s.status === "ativa")
                       .map((sucata) => (
-                        <SelectItem key={sucata.id} value={sucata.id}>
+                        <SelectItem key={sucata.id} value={sucata.id.toString()}>
                           Lote {sucata.lote} - {sucata.marca} {sucata.modelo} ({sucata.ano})
                         </SelectItem>
                       ))}
@@ -314,7 +316,7 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
                       <Button size="sm" variant="outline" onClick={() => handleEdit(venda)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleDelete(venda.id)}>
+                      <Button size="sm" variant="outline" onClick={() => handleDelete(Number.parseInt(venda.id))}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
