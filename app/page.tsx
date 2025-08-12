@@ -120,7 +120,7 @@ export default function CMVSystem() {
           </TabsContent>
 
           <TabsContent value="sucatas">
-            <CadastroSucatas sucatas={sucatas} setSucatas={setSucatas} />
+            <CadastroSucatas sucatas={sucatas} setSucatas={setSucatas} vendas={vendas} />
           </TabsContent>
 
           <TabsContent value="vendas">

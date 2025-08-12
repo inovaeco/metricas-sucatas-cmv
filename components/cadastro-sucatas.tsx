@@ -16,13 +16,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Edit, Trash2, Search } from "lucide-react"
-import type { Sucata } from "@/app/page"
+import { Plus, Edit, Trash2, Search, Eye } from "lucide-react"
+import type { Sucata, Venda } from "@/app/page"
 import { createSucata, updateSucata, deleteSucata } from "@/lib/database"
 
 interface CadastroSucatasProps {
   sucatas: Sucata[]
   setSucatas: (sucatas: Sucata[]) => void
+  vendas: Venda[] // Adicionando vendas para mostrar detalhes da sucata
 }
 
 const formatDateLocal = (dateString: string) => {
@@ -30,8 +31,10 @@ const formatDateLocal = (dateString: string) => {
   return new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day)).toLocaleDateString("pt-BR")
 }
 
-export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
+export function CadastroSucatas({ sucatas, setSucatas, vendas }: CadastroSucatasProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isDetalhesOpen, setIsDetalhesOpen] = useState(false) // Estado para modal de detalhes
+  const [sucataSelecionada, setSucataSelecionada] = useState<Sucata | null>(null) // Sucata selecionada para detalhes
   const [editingSucata, setEditingSucata] = useState<Sucata | null>(null)
   const [filtro, setFiltro] = useState("")
   const [loading, setLoading] = useState(false)
@@ -128,6 +131,21 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
       setLoading(false)
     }
   }
+
+  const handleVerDetalhes = (sucata: Sucata) => {
+    setSucataSelecionada(sucata)
+    setIsDetalhesOpen(true)
+  }
+
+  const vendasDaSucata = sucataSelecionada
+    ? vendas
+        .filter((venda) => venda.sucataId === sucataSelecionada.id)
+        .sort((a, b) => new Date(b.dataVenda).getTime() - new Date(a.dataVenda).getTime())
+    : []
+
+  const totalVendido = vendasDaSucata.reduce((total, venda) => total + venda.valor, 0)
+  const lucro = totalVendido - (sucataSelecionada?.custo || 0)
+  const margemLucro = sucataSelecionada?.custo ? (lucro / sucataSelecionada.custo) * 100 : 0
 
   return (
     <div className="space-y-6">
@@ -243,6 +261,88 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
         </Dialog>
       </div>
 
+      <Dialog open={isDetalhesOpen} onOpenChange={setIsDetalhesOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Sucata - Lote {sucataSelecionada?.lote}</DialogTitle>
+            <DialogDescription>
+              {sucataSelecionada?.marca} {sucataSelecionada?.modelo} ({sucataSelecionada?.ano})
+            </DialogDescription>
+          </DialogHeader>
+
+          {sucataSelecionada && (
+            <div className="space-y-6">
+              {/* Resumo financeiro */}
+              <div className="grid grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-sm text-gray-600">Custo Inicial</div>
+                    <div className="text-2xl font-bold text-red-600">
+                      R$ {sucataSelecionada.custo.toLocaleString("pt-BR")}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-sm text-gray-600">Total Vendido</div>
+                    <div className="text-2xl font-bold text-green-600">R$ {totalVendido.toLocaleString("pt-BR")}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-sm text-gray-600">Lucro/Prejuízo</div>
+                    <div className={`text-2xl font-bold ${lucro >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      R$ {lucro.toLocaleString("pt-BR")}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-sm text-gray-600">Margem</div>
+                    <div className={`text-2xl font-bold ${margemLucro >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      {margemLucro.toFixed(1)}%
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Lista de vendas */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Peças Vendidas ({vendasDaSucata.length})</h3>
+                {vendasDaSucata.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Peça</TableHead>
+                        <TableHead>Valor</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Canal</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {vendasDaSucata.map((venda) => (
+                        <TableRow key={venda.id}>
+                          <TableCell className="font-medium">{venda.nomePeca}</TableCell>
+                          <TableCell>R$ {venda.valor.toLocaleString("pt-BR")}</TableCell>
+                          <TableCell>{formatDateLocal(venda.dataVenda)}</TableCell>
+                          <TableCell>
+                            <Badge variant={venda.canal === "mercado-livre" ? "default" : "secondary"}>
+                              {venda.canal === "mercado-livre" ? "Mercado Livre" : "Balcão"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">Nenhuma peça vendida desta sucata ainda.</div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Card>
         <CardHeader>
           <CardTitle>Sucatas Cadastradas</CardTitle>
@@ -263,7 +363,11 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
             </TableHeader>
             <TableBody>
               {sucatasFiltradas.map((sucata) => (
-                <TableRow key={sucata.id}>
+                <TableRow
+                  key={sucata.id}
+                  className="cursor-pointer hover:bg-gray-50" // Indicar que é clicável
+                  onClick={() => handleVerDetalhes(sucata)} // Clique para ver detalhes
+                >
                   <TableCell className="font-medium">
                     {sucata.marca} {sucata.modelo}
                   </TableCell>
@@ -278,8 +382,13 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
                       {sucata.status === "ativa" ? "Ativa" : "Liquidada"}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    {" "}
+                    {/* Evitar propagação do clique nos botões */}
                     <div className="flex space-x-2">
+                      <Button size="sm" variant="outline" onClick={() => handleVerDetalhes(sucata)} disabled={loading}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       <Button size="sm" variant="outline" onClick={() => handleEdit(sucata)} disabled={loading}>
                         <Edit className="h-4 w-4" />
                       </Button>

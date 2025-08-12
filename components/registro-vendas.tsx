@@ -37,12 +37,16 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingVenda, setEditingVenda] = useState<Venda | null>(null)
   const [filtro, setFiltro] = useState("")
+  const [paginaAtual, setPaginaAtual] = useState(1) // Estado para paginação
+  const [itensPorPagina] = useState(10) // Itens por página
+  const [filtroData, setFiltroData] = useState("") // Filtro por data
+  const [filtroCanal, setFiltroCanal] = useState("") // Filtro por canal
   const [formData, setFormData] = useState({
     sucataId: "",
     nomePeca: "",
     valor: "",
     dataVenda: new Date().toISOString().split("T")[0],
-    canal: "" as "mercado-livre" | "balcao" | "",
+    canal: "",
   })
 
   console.log(
@@ -56,13 +60,28 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
       sucata: sucatas.find((s) => s.id === venda.sucataId),
     }))
     .filter((venda) => venda.sucata)
+    .sort((a, b) => new Date(b.dataVenda).getTime() - new Date(a.dataVenda).getTime()) // Ordenar por data (mais recentes primeiro)
 
-  const vendasFiltradas = vendasComSucata.filter(
-    (venda) =>
+  const vendasFiltradas = vendasComSucata.filter((venda) => {
+    const matchTexto =
       venda.nomePeca.toLowerCase().includes(filtro.toLowerCase()) ||
       venda.sucata?.marca.toLowerCase().includes(filtro.toLowerCase()) ||
-      venda.sucata?.modelo.toLowerCase().includes(filtro.toLowerCase()),
-  )
+      venda.sucata?.modelo.toLowerCase().includes(filtro.toLowerCase())
+
+    const matchData = !filtroData || venda.dataVenda.includes(filtroData)
+    const matchCanal = !filtroCanal || venda.canal === filtroCanal
+
+    return matchTexto && matchData && matchCanal
+  })
+
+  const totalPaginas = Math.ceil(vendasFiltradas.length / itensPorPagina)
+  const indiceInicio = (paginaAtual - 1) * itensPorPagina
+  const vendasPaginadas = vendasFiltradas.slice(indiceInicio, indiceInicio + itensPorPagina)
+
+  const handleFiltroChange = (novoFiltro: string) => {
+    setFiltro(novoFiltro)
+    setPaginaAtual(1)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -187,10 +206,38 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
             <Input
               placeholder="Buscar por peça ou veículo..."
               value={filtro}
-              onChange={(e) => setFiltro(e.target.value)}
+              onChange={(e) => handleFiltroChange(e.target.value)}
               className="pl-10 w-64"
             />
           </div>
+
+          <Input
+            type="month"
+            placeholder="Filtrar por mês"
+            value={filtroData}
+            onChange={(e) => {
+              setFiltroData(e.target.value)
+              setPaginaAtual(1)
+            }}
+            className="w-40"
+          />
+
+          <Select
+            value={filtroCanal}
+            onValueChange={(value) => {
+              setFiltroCanal(value)
+              setPaginaAtual(1)
+            }}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Canal" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="mercado-livre">Mercado Livre</SelectItem>
+              <SelectItem value="balcao">Balcão</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -302,7 +349,9 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
       <Card>
         <CardHeader>
           <CardTitle>Vendas Registradas</CardTitle>
-          <CardDescription>{vendasFiltradas.length} venda(s) encontrada(s)</CardDescription>
+          <CardDescription>
+            {vendasFiltradas.length} venda(s) encontrada(s) - Página {paginaAtual} de {totalPaginas}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -317,7 +366,7 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
               </TableRow>
             </TableHeader>
             <TableBody>
-              {vendasFiltradas.map((venda) => (
+              {vendasPaginadas.map((venda) => (
                 <TableRow key={venda.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
@@ -349,6 +398,32 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
               ))}
             </TableBody>
           </Table>
+
+          {totalPaginas > 1 && (
+            <div className="flex justify-center items-center space-x-2 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPaginaAtual(Math.max(1, paginaAtual - 1))}
+                disabled={paginaAtual === 1}
+              >
+                Anterior
+              </Button>
+
+              <span className="text-sm text-gray-600">
+                Página {paginaAtual} de {totalPaginas}
+              </span>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPaginaAtual(Math.min(totalPaginas, paginaAtual + 1))}
+                disabled={paginaAtual === totalPaginas}
+              >
+                Próxima
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
