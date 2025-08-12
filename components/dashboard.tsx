@@ -70,7 +70,7 @@ export function Dashboard({ sucatas, vendas }: DashboardProps) {
     return dataItem >= dataLimite
   }
 
-  const vendasFiltradas = vendas.filter((venda) => filtrarPorPeriodo(new Date(venda.data)))
+  const vendasFiltradas = vendas.filter((venda) => filtrarPorPeriodo(new Date(venda.dataVenda))) // corrigido de venda.data para venda.dataVenda
 
   // Cálculos de métricas
   const totalCustos = sucatas.reduce((acc, sucata) => acc + sucata.custo, 0)
@@ -85,7 +85,7 @@ export function Dashboard({ sucatas, vendas }: DashboardProps) {
     const grupos: { [key: string]: { vendas: number; lucro: number; quantidade: number } } = {}
 
     vendasFiltradas.forEach((venda) => {
-      const data = new Date(venda.data)
+      const data = new Date(venda.dataVenda) // corrigido de venda.data para venda.dataVenda
       let chave: string
 
       if (visualizacaoTempo === "mensal") {
@@ -127,12 +127,19 @@ export function Dashboard({ sucatas, vendas }: DashboardProps) {
     return sucatas.filter((sucata) => {
       const ultimaVenda = vendas
         .filter((v) => v.sucataId === sucata.id)
-        .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())[0]
+        .sort((a, b) => new Date(b.dataVenda).getTime() - new Date(a.dataVenda).getTime())[0] // corrigido de a.data/b.data para a.dataVenda/b.dataVenda
 
-      const dataReferencia = ultimaVenda ? new Date(ultimaVenda.data) : new Date(sucata.dataEntrada)
-      const diasSemVenda = Math.floor((hoje.getTime() - dataReferencia.getTime()) / (24 * 60 * 60 * 1000))
+      if (!ultimaVenda) {
+        const diasSemVenda = Math.floor(
+          (hoje.getTime() - new Date(sucata.dataEntrada).getTime()) / (1000 * 60 * 60 * 24),
+        )
+        return diasSemVenda > diasParado
+      }
 
-      return diasSemVenda >= diasParado
+      const diasSemVenda = Math.floor(
+        (hoje.getTime() - new Date(ultimaVenda.dataVenda).getTime()) / (1000 * 60 * 60 * 24),
+      ) // corrigido de ultimaVenda.data para ultimaVenda.dataVenda
+      return diasSemVenda > diasParado
     })
   }, [sucatas, vendas, diasParado])
 
@@ -476,9 +483,9 @@ export function Dashboard({ sucatas, vendas }: DashboardProps) {
               {sucatasParadas.slice(0, 6).map((sucata) => {
                 const ultimaVenda = vendas
                   .filter((v) => v.sucataId === sucata.id)
-                  .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())[0]
+                  .sort((a, b) => new Date(b.dataVenda).getTime() - new Date(a.dataVenda).getTime())[0] // corrigido de a.data/b.data para a.dataVenda/b.dataVenda
 
-                const dataReferencia = ultimaVenda ? new Date(ultimaVenda.data) : new Date(sucata.dataEntrada)
+                const dataReferencia = ultimaVenda ? new Date(ultimaVenda.dataVenda) : new Date(sucata.dataEntrada) // corrigido de ultimaVenda.data para ultimaVenda.dataVenda
                 const diasSemVenda = Math.floor(
                   (new Date().getTime() - dataReferencia.getTime()) / (24 * 60 * 60 * 1000),
                 )
