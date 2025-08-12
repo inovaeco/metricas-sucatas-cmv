@@ -1,21 +1,73 @@
-import { supabase } from "./supabase"
+import { getSupabaseClient, isSupabaseConfigured } from "./supabase"
 import type { Sucata, Venda } from "@/app/page"
 import type { DatabaseSucata, DatabaseVenda } from "./supabase"
 
-// Simplificando a função de verificação de tabelas
 async function ensureTablesExist(): Promise<void> {
   try {
-    // Tentar uma query simples para verificar se as tabelas existem
-    await supabase.from("sucatas").select("id").limit(1)
-    await supabase.from("vendas").select("id").limit(1)
+    if (!isSupabaseConfigured) {
+      throw new Error("Supabase não configurado")
+    }
+
+    const supabase = getSupabaseClient()
+
+    // Tentar verificar se as tabelas existem
+    const { error: sucatasError } = await supabase.from("sucatas").select("id").limit(1)
+    const { error: vendasError } = await supabase.from("vendas").select("id").limit(1)
+
+    // Se as tabelas não existem, criar elas
+    if (sucatasError || vendasError) {
+      console.log("Criando tabelas no banco de dados...")
+
+      const createTablesSQL = `
+        CREATE TABLE IF NOT EXISTS sucatas (
+          id SERIAL PRIMARY KEY,
+          lote VARCHAR(50) NOT NULL,
+          marca VARCHAR(100) NOT NULL,
+          modelo VARCHAR(100) NOT NULL,
+          ano INTEGER NOT NULL,
+          custo DECIMAL(10,2) NOT NULL,
+          data_entrada DATE NOT NULL,
+          status VARCHAR(20) DEFAULT 'ativa',
+          created_at TIMESTAMP DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS vendas (
+          id SERIAL PRIMARY KEY,
+          sucata_id INTEGER REFERENCES sucatas(id),
+          nome_peca VARCHAR(200) NOT NULL,
+          valor DECIMAL(10,2) NOT NULL,
+          canal VARCHAR(50) NOT NULL,
+          data_venda DATE NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW()
+        );
+      `
+
+      const { error: createError } = await supabase.rpc("exec_sql", { sql: createTablesSQL })
+
+      if (createError) {
+        console.error("Erro ao criar tabelas:", createError)
+        throw createError
+      }
+
+      console.log("Tabelas criadas com sucesso!")
+    }
   } catch (error) {
-    console.log("Tabelas serão criadas automaticamente pelo Supabase")
+    console.error("Erro ao verificar/criar tabelas:", error)
+    throw error
   }
 }
 
 // Funções para Sucatas
 export async function getSucatas(): Promise<Sucata[]> {
   try {
+    if (!isSupabaseConfigured) {
+      console.error("Supabase não configurado")
+      return []
+    }
+
+    await ensureTablesExist()
+
+    const supabase = getSupabaseClient()
     const { data, error } = await supabase.from("sucatas").select("*").order("created_at", { ascending: false })
 
     if (error) {
@@ -32,6 +84,14 @@ export async function getSucatas(): Promise<Sucata[]> {
 
 export async function createSucata(sucata: Omit<Sucata, "id">): Promise<Sucata | null> {
   try {
+    if (!isSupabaseConfigured) {
+      console.error("Supabase não configurado")
+      return null
+    }
+
+    await ensureTablesExist()
+
+    const supabase = getSupabaseClient()
     const { data, error } = await supabase
       .from("sucatas")
       .insert({
@@ -61,6 +121,14 @@ export async function createSucata(sucata: Omit<Sucata, "id">): Promise<Sucata |
 // Funções para Vendas
 export async function getVendas(): Promise<Venda[]> {
   try {
+    if (!isSupabaseConfigured) {
+      console.error("Supabase não configurado")
+      return []
+    }
+
+    await ensureTablesExist()
+
+    const supabase = getSupabaseClient()
     const { data, error } = await supabase.from("vendas").select("*").order("created_at", { ascending: false })
 
     if (error) {
@@ -77,6 +145,14 @@ export async function getVendas(): Promise<Venda[]> {
 
 export async function createVenda(venda: Omit<Venda, "id">): Promise<Venda | null> {
   try {
+    if (!isSupabaseConfigured) {
+      console.error("Supabase não configurado")
+      return null
+    }
+
+    await ensureTablesExist()
+
+    const supabase = getSupabaseClient()
     const { data, error } = await supabase
       .from("vendas")
       .insert({
