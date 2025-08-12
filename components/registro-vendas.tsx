@@ -62,6 +62,11 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!formData.sucataId || formData.sucataId === "") {
+      alert("Por favor, selecione uma sucata antes de registrar a venda.")
+      return
+    }
+
     try {
       const vendaData = {
         sucata_id: Number.parseInt(formData.sucataId),
@@ -70,6 +75,13 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
         canal: formData.canal as "mercado-livre" | "balcao",
         data_venda: formData.dataVenda,
       }
+
+      if (isNaN(vendaData.sucata_id)) {
+        alert("Erro: ID da sucata inválido. Tente selecionar a sucata novamente.")
+        return
+      }
+
+      console.log("Dados da venda a serem enviados:", vendaData) // Log para debug
 
       if (editingVenda) {
         await updateVenda(editingVenda.id, vendaData)
@@ -106,8 +118,8 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
 
       resetForm()
     } catch (error) {
-      console.error("Erro ao salvar venda:", error)
-      alert("Erro ao salvar venda. Tente novamente.")
+      console.error("Erro detalhado ao criar venda:", error) // Log mais detalhado
+      alert("Erro ao salvar venda. Verifique se todos os campos estão preenchidos corretamente.")
     }
   }
 
@@ -175,10 +187,14 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="sucataId">Sucata</Label>
+                <Label htmlFor="sucataId">Sucata *</Label>
                 <Select
                   value={formData.sucataId}
-                  onValueChange={(value) => setFormData({ ...formData, sucataId: value })}
+                  onValueChange={(value) => {
+                    console.log("Sucata selecionada:", value) // Log para debug
+                    setFormData({ ...formData, sucataId: value })
+                  }}
+                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a sucata" />
