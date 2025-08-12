@@ -61,7 +61,7 @@ async function ensureTablesExist(): Promise<void> {
 export async function getSucatas(): Promise<Sucata[]> {
   try {
     if (!isSupabaseConfigured) {
-      console.error("Supabase não configurado")
+      console.warn("Supabase não configurado - retornando array vazio")
       return []
     }
 
@@ -122,7 +122,7 @@ export async function createSucata(sucata: Omit<Sucata, "id">): Promise<Sucata |
 export async function getVendas(): Promise<Venda[]> {
   try {
     if (!isSupabaseConfigured) {
-      console.error("Supabase não configurado")
+      console.warn("Supabase não configurado - retornando array vazio")
       return []
     }
 
