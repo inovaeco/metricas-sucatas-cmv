@@ -27,6 +27,11 @@ interface RegistroVendasProps {
   setVendas: (vendas: Venda[]) => void
 }
 
+const formatDateLocal = (dateString: string) => {
+  const [year, month, day] = dateString.split("-")
+  return new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day)).toLocaleDateString("pt-BR")
+}
+
 export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingVenda, setEditingVenda] = useState<Venda | null>(null)
@@ -246,7 +251,7 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
                   </TableCell>
                   <TableCell>{venda.nomePeca}</TableCell>
                   <TableCell>R$ {venda.valor.toLocaleString("pt-BR")}</TableCell>
-                  <TableCell>{new Date(venda.dataVenda).toLocaleDateString("pt-BR")}</TableCell>
+                  <TableCell>{formatDateLocal(venda.dataVenda)}</TableCell>
                   <TableCell>
                     <Badge variant={venda.canal === "mercado-livre" ? "default" : "secondary"}>
                       {venda.canal === "mercado-livre" ? "Mercado Livre" : "Balcão"}

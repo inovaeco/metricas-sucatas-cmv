@@ -25,6 +25,11 @@ interface CadastroSucatasProps {
   setSucatas: (sucatas: Sucata[]) => void
 }
 
+const formatDateLocal = (dateString: string) => {
+  const [year, month, day] = dateString.split("-")
+  return new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day)).toLocaleDateString("pt-BR")
+}
+
 export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingSucata, setEditingSucata] = useState<Sucata | null>(null)
@@ -234,7 +239,7 @@ export function CadastroSucatas({ sucatas, setSucatas }: CadastroSucatasProps) {
                     <Badge variant="outline">{sucata.lote}</Badge>
                   </TableCell>
                   <TableCell>R$ {sucata.custo.toLocaleString("pt-BR")}</TableCell>
-                  <TableCell>{new Date(sucata.dataEntrada).toLocaleDateString("pt-BR")}</TableCell>
+                  <TableCell>{formatDateLocal(sucata.dataEntrada)}</TableCell>
                   <TableCell>
                     <Badge variant={sucata.status === "ativa" ? "default" : "secondary"}>
                       {sucata.status === "ativa" ? "Ativa" : "Liquidada"}
