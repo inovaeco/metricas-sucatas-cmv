@@ -35,12 +35,12 @@ git push -u origin main
 5. Região: **South America (São Paulo)**
 6. Clique **"Create new project"**
 
-### 5️⃣ EXECUTAR SCRIPTS SQL
+### 5️⃣ EXECUTAR SCRIPT SQL
 1. No Supabase, vá em **"SQL Editor"**
 2. Clique **"New query"**
 3. Cole o conteúdo do arquivo `scripts/01-create-tables.sql`
 4. Clique **"Run"**
-5. Repita com `scripts/02-seed-data.sql`
+5. ⚠️ **NÃO execute o 02-seed-data.sql** (contém apenas dados de exemplo)
 
 ### 6️⃣ CONFIGURAR VERCEL
 1. Acesse [vercel.com](https://vercel.com)
@@ -73,7 +73,7 @@ git push -u origin main
 ## 🆘 SUPORTE
 Se tiver dúvidas:
 1. Verifique se todas as variáveis estão corretas
-2. Confirme se os scripts SQL foram executados
+2. Confirme se o script SQL foi executado
 3. Teste a conexão com o banco no Supabase
 
 ## 📱 ACESSO MÓVEL

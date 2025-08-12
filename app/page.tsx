@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Car, ShoppingCart, BarChart3 } from "lucide-react"
+import { Car, ShoppingCart, BarChart3, Loader2 } from "lucide-react"
 import { CadastroSucatas } from "@/components/cadastro-sucatas"
 import { RegistroVendas } from "@/components/registro-vendas"
 import { Dashboard } from "@/components/dashboard"
+import { getSucatas, getVendas } from "@/lib/database"
 
 // Tipos de dados
 export interface Sucata {
@@ -29,19 +30,47 @@ export interface Venda {
   canal: "mercado-livre" | "balcao"
 }
 
-const sucatasIniciais: Sucata[] = []
-const vendasIniciais: Venda[] = []
-
 export default function CMVSystem() {
-  const [sucatas, setSucatas] = useState<Sucata[]>(sucatasIniciais)
-  const [vendas, setVendas] = useState<Venda[]>(vendasIniciais)
+  const [sucatas, setSucatas] = useState<Sucata[]>([])
+  const [vendas, setVendas] = useState<Venda[]>([])
   const [activeTab, setActiveTab] = useState("dashboard")
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true)
+        const [sucatasData, vendasData] = await Promise.all([getSucatas(), getVendas()])
+        setSucatas(sucatasData)
+        setVendas(vendasData)
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error)
+        setSucatas([])
+        setVendas([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [])
 
   // Cálculos de métricas
   const totalSucatas = sucatas.length
   const totalCustos = sucatas.reduce((acc, sucata) => acc + sucata.custo, 0)
   const totalVendas = vendas.reduce((acc, venda) => acc + venda.valor, 0)
   const lucroTotal = totalVendas - totalCustos
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Configurando sistema CMV...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
