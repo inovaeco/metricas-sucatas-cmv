@@ -11,7 +11,7 @@ import { getSucatas, getVendas } from "@/lib/database"
 
 // Tipos de dados
 export interface Sucata {
-  id: number
+  id: string // UUID do Supabase
   marca: string
   modelo: string
   ano: number
@@ -22,8 +22,8 @@ export interface Sucata {
 }
 
 export interface Venda {
-  id: number
-  sucataId: number
+  id: string // UUID do Supabase
+  sucataId: string // UUID da sucata
   nomePeca: string
   valor: number
   dataVenda: string

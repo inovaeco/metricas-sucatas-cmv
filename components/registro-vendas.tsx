@@ -76,23 +76,17 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
     }
 
     try {
-      let sucataId: number
+      const sucataId = formData.sucataId
 
-      if (typeof formData.sucataId === "string") {
-        sucataId = Number.parseInt(formData.sucataId)
-      } else {
-        sucataId = Number(formData.sucataId)
-      }
+      console.log("sucataId (UUID):", sucataId)
 
-      console.log("sucataId convertido:", sucataId, "isNaN:", isNaN(sucataId))
-
-      if (isNaN(sucataId) || sucataId <= 0) {
-        console.error("ID inválido - formData.sucataId:", formData.sucataId, "convertido:", sucataId)
+      if (!sucataId || sucataId.length < 10) {
+        console.error("ID inválido - formData.sucataId:", formData.sucataId)
         alert("Erro: ID da sucata inválido. Tente selecionar a sucata novamente.")
         return
       }
 
-      const sucataExiste = sucatas.find((s) => Number(s.id) === sucataId)
+      const sucataExiste = sucatas.find((s) => s.id === sucataId)
       console.log("Sucata encontrada:", sucataExiste)
 
       if (!sucataExiste) {
@@ -132,7 +126,7 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
           setVendas([
             ...vendas,
             {
-              id: novaVenda.id.toString(),
+              id: novaVenda.id,
               sucataId: sucataId,
               nomePeca: formData.nomePeca,
               valor: Number.parseFloat(formData.valor),
@@ -165,7 +159,7 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
   const handleEdit = (venda: Venda) => {
     setEditingVenda(venda)
     setFormData({
-      sucataId: venda.sucataId.toString(),
+      sucataId: venda.sucataId,
       nomePeca: venda.nomePeca,
       valor: venda.valor.toString(),
       dataVenda: venda.dataVenda,
@@ -174,9 +168,9 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
     setIsDialogOpen(true)
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     try {
-      await deleteVenda(id.toString())
+      await deleteVenda(id)
       setVendas(vendas.filter((v) => v.id !== id))
     } catch (error) {
       console.error("Erro ao deletar venda:", error)
@@ -346,7 +340,7 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
                       <Button size="sm" variant="outline" onClick={() => handleEdit(venda)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleDelete(Number.parseInt(venda.id))}>
+                      <Button size="sm" variant="outline" onClick={() => handleDelete(venda.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
