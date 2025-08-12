@@ -20,6 +20,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Edit, Trash2, Search } from "lucide-react"
 import type { Sucata, Venda } from "@/app/page"
+import { createVenda, updateVenda, deleteVenda } from "@/lib/database"
 
 interface RegistroVendasProps {
   sucatas: Sucata[]
@@ -58,25 +59,56 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
       venda.sucata?.modelo.toLowerCase().includes(filtro.toLowerCase()),
   )
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const novaVenda: Venda = {
-      id: editingVenda?.id || Date.now().toString(),
-      sucataId: formData.sucataId,
-      nomePeca: formData.nomePeca,
-      valor: Number.parseFloat(formData.valor),
-      dataVenda: formData.dataVenda,
-      canal: formData.canal as "mercado-livre" | "balcao",
-    }
+    try {
+      const vendaData = {
+        sucata_id: Number.parseInt(formData.sucataId),
+        peca: formData.nomePeca,
+        valor: Number.parseFloat(formData.valor),
+        canal: formData.canal as "mercado-livre" | "balcao",
+        data_venda: formData.dataVenda,
+      }
 
-    if (editingVenda) {
-      setVendas(vendas.map((v) => (v.id === editingVenda.id ? novaVenda : v)))
-    } else {
-      setVendas([...vendas, novaVenda])
-    }
+      if (editingVenda) {
+        await updateVenda(editingVenda.id, vendaData)
+        setVendas(
+          vendas.map((v) =>
+            v.id === editingVenda.id
+              ? {
+                  ...editingVenda,
+                  sucataId: formData.sucataId,
+                  nomePeca: formData.nomePeca,
+                  valor: Number.parseFloat(formData.valor),
+                  dataVenda: formData.dataVenda,
+                  canal: formData.canal as "mercado-livre" | "balcao",
+                }
+              : v,
+          ),
+        )
+      } else {
+        const novaVenda = await createVenda(vendaData)
+        if (novaVenda) {
+          setVendas([
+            ...vendas,
+            {
+              id: novaVenda.id.toString(),
+              sucataId: formData.sucataId,
+              nomePeca: formData.nomePeca,
+              valor: Number.parseFloat(formData.valor),
+              dataVenda: formData.dataVenda,
+              canal: formData.canal as "mercado-livre" | "balcao",
+            },
+          ])
+        }
+      }
 
-    resetForm()
+      resetForm()
+    } catch (error) {
+      console.error("Erro ao salvar venda:", error)
+      alert("Erro ao salvar venda. Tente novamente.")
+    }
   }
 
   const resetForm = () => {
@@ -103,13 +135,18 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
     setIsDialogOpen(true)
   }
 
-  const handleDelete = (id: string) => {
-    setVendas(vendas.filter((v) => v.id !== id))
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteVenda(id)
+      setVendas(vendas.filter((v) => v.id !== id))
+    } catch (error) {
+      console.error("Erro ao deletar venda:", error)
+      alert("Erro ao deletar venda. Tente novamente.")
+    }
   }
 
   return (
     <div className="space-y-6">
-      {/* Header com filtros e botão de adicionar */}
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
           <div className="relative">
@@ -220,7 +257,6 @@ export function RegistroVendas({ sucatas, vendas, setVendas }: RegistroVendasPro
         </Dialog>
       </div>
 
-      {/* Tabela de vendas */}
       <Card>
         <CardHeader>
           <CardTitle>Vendas Registradas</CardTitle>

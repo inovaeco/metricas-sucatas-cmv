@@ -151,7 +151,13 @@ export async function getVendas(): Promise<Venda[]> {
   }
 }
 
-export async function createVenda(venda: Omit<Venda, "id">): Promise<Venda | null> {
+export async function createVenda(vendaData: {
+  sucata_id: number
+  peca: string
+  valor: number
+  canal: "mercado-livre" | "balcao"
+  data_venda: string
+}): Promise<Venda | null> {
   try {
     if (!isSupabaseConfigured) {
       console.error("Supabase não configurado")
@@ -159,27 +165,103 @@ export async function createVenda(venda: Omit<Venda, "id">): Promise<Venda | nul
     }
 
     const supabase = getSupabaseClient()
+
+    console.log("Tentando inserir venda:", vendaData)
+
     const { data, error } = await supabase
       .from("vendas")
       .insert({
-        sucata_id: venda.sucataId,
-        nome_peca: venda.nomePeca,
-        valor: venda.valor,
-        data_venda: venda.dataVenda,
-        canal: venda.canal,
+        sucata_id: vendaData.sucata_id,
+        peca: vendaData.peca,
+        valor: vendaData.valor,
+        data_venda: vendaData.data_venda,
+        canal: vendaData.canal,
       })
       .select()
       .single()
 
     if (error) {
-      console.error("Erro ao criar venda:", error)
+      console.error("Erro detalhado ao criar venda:", error)
       return null
     }
 
+    console.log("Venda criada com sucesso:", data)
     return transformDatabaseVenda(data)
   } catch (error) {
     console.error("Erro ao criar venda:", error)
     return null
+  }
+}
+
+export async function updateVenda(
+  id: string,
+  vendaData: {
+    sucata_id: number
+    peca: string
+    valor: number
+    canal: "mercado-livre" | "balcao"
+    data_venda: string
+  },
+): Promise<Venda | null> {
+  try {
+    if (!isSupabaseConfigured) {
+      console.error("Supabase não configurado")
+      return null
+    }
+
+    const supabase = getSupabaseClient()
+
+    console.log("Tentando atualizar venda:", id, vendaData)
+
+    const { data, error } = await supabase
+      .from("vendas")
+      .update({
+        sucata_id: vendaData.sucata_id,
+        peca: vendaData.peca,
+        valor: vendaData.valor,
+        data_venda: vendaData.data_venda,
+        canal: vendaData.canal,
+      })
+      .eq("id", id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Erro detalhado ao atualizar venda:", error)
+      return null
+    }
+
+    console.log("Venda atualizada com sucesso:", data)
+    return transformDatabaseVenda(data)
+  } catch (error) {
+    console.error("Erro ao atualizar venda:", error)
+    return null
+  }
+}
+
+export async function deleteVenda(id: string): Promise<boolean> {
+  try {
+    if (!isSupabaseConfigured) {
+      console.error("Supabase não configurado")
+      return false
+    }
+
+    const supabase = getSupabaseClient()
+
+    console.log("Tentando deletar venda:", id)
+
+    const { error } = await supabase.from("vendas").delete().eq("id", id)
+
+    if (error) {
+      console.error("Erro detalhado ao deletar venda:", error)
+      return false
+    }
+
+    console.log("Venda deletada com sucesso")
+    return true
+  } catch (error) {
+    console.error("Erro ao deletar venda:", error)
+    return false
   }
 }
 
@@ -199,9 +281,9 @@ function transformDatabaseSucata(dbSucata: DatabaseSucata): Sucata {
 
 function transformDatabaseVenda(dbVenda: DatabaseVenda): Venda {
   return {
-    id: dbVenda.id,
-    sucataId: dbVenda.sucata_id,
-    nomePeca: dbVenda.nome_peca,
+    id: dbVenda.id.toString(),
+    sucataId: dbVenda.sucata_id.toString(),
+    nomePeca: dbVenda.peca,
     valor: dbVenda.valor,
     dataVenda: dbVenda.data_venda,
     canal: dbVenda.canal,
